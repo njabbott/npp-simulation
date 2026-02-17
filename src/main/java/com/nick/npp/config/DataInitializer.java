@@ -35,9 +35,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("Initializing NPP demo data...");
+        log.info("Initializing NPP simulation data...");
 
-        // 4 Major Australian Banks
+        // 5 Australian Banks
         NppParticipant cba = participantRepo.save(
                 new NppParticipant("Commonwealth Bank of Australia", "CBA", "CTBAAU2S", "062-000", new BigDecimal("50000000.00")));
         NppParticipant nab = participantRepo.save(
@@ -46,11 +46,15 @@ public class DataInitializer implements CommandLineRunner {
                 new NppParticipant("Australia and New Zealand Banking Group", "ANZ", "ANZBAU3M", "012-000", new BigDecimal("47000000.00")));
         NppParticipant westpac = participantRepo.save(
                 new NppParticipant("Westpac Banking Corporation", "Westpac", "WPACAU2S", "032-000", new BigDecimal("45000000.00")));
+        NppParticipant pfb = participantRepo.save(
+                new NppParticipant("People First Bank", "PFB", "HBSLAU4T", "638-060", new BigDecimal("42000000.00")));
 
         // Bank Accounts - Personal and Business across all banks
+        // People First Bank accounts
+        BankAccount johnPfb = accountRepo.save(
+                new BankAccount("12345678", "638-060", "John Smith", new BigDecimal("15420.50"), pfb));
+
         // CBA accounts
-        BankAccount johnCba = accountRepo.save(
-                new BankAccount("12345678", "062-000", "John Smith", new BigDecimal("15420.50"), cba));
         BankAccount sarahCba = accountRepo.save(
                 new BankAccount("87654321", "062-000", "Sarah Johnson", new BigDecimal("8750.00"), cba));
         BankAccount acmeCba = accountRepo.save(
@@ -75,7 +79,7 @@ public class DataInitializer implements CommandLineRunner {
                 new BankAccount("99887766", "032-000", "OzTrade Imports", new BigDecimal("95000.00"), westpac));
 
         // PayIDs - Phone
-        payIdRepo.save(new PayId(PayIdType.PHONE, "+61412345678", "John S", true, johnCba));
+        payIdRepo.save(new PayId(PayIdType.PHONE, "+61412345678", "John S", true, johnPfb));
         payIdRepo.save(new PayId(PayIdType.PHONE, "+61498765432", "Mike W", true, mikeNab));
         payIdRepo.save(new PayId(PayIdType.PHONE, "+61423456789", "Emma D", true, emmaAnz));
 
@@ -98,7 +102,7 @@ public class DataInitializer implements CommandLineRunner {
         activeMandate.setValidFrom(LocalDate.now().minusMonths(3));
         activeMandate.setValidTo(LocalDate.now().plusYears(1));
         activeMandate.setCreditorAccount(greenAnz);
-        activeMandate.setDebtorAccount(johnCba);
+        activeMandate.setDebtorAccount(johnPfb);
         mandateRepo.save(activeMandate);
 
         PayToMandate pendingMandate = new PayToMandate();
@@ -113,6 +117,6 @@ public class DataInitializer implements CommandLineRunner {
         pendingMandate.setDebtorAccount(emmaAnz);
         mandateRepo.save(pendingMandate);
 
-        log.info("NPP demo data initialized: 4 banks, 9 accounts, 8 PayIDs, 2 mandates");
+        log.info("NPP simulation data initialized: 5 banks, 9 accounts, 8 PayIDs, 2 mandates");
     }
 }

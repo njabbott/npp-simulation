@@ -1,4 +1,4 @@
-# NPP Demo Application - Specification
+# NPP Simulation Application - Specification
 
 ## Purpose
 
@@ -53,7 +53,7 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 ## Seed Data
 
-### Participants (4 Major Banks)
+### Participants (5 Banks)
 
 | Bank | Short Name | BIC | BSB | ESA Balance |
 |------|-----------|-----|-----|-------------|
@@ -61,12 +61,13 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 | National Australia Bank | NAB | NATAAU33 | 083-000 | $48,000,000.00 |
 | Australia and New Zealand Banking Group | ANZ | ANZBAU3M | 012-000 | $47,000,000.00 |
 | Westpac Banking Corporation | Westpac | WPACAU2S | 032-000 | $45,000,000.00 |
+| People First Bank | PFB | HBSLAU4T | 638-060 | $42,000,000.00 |
 
 ### Bank Accounts (9)
 
 | Account Name | BSB | Account Number | Bank | Balance |
 |-------------|-----|---------------|------|---------|
-| John Smith | 062-000 | 12345678 | CBA | $15,420.50 |
+| John Smith | 638-060 | 12345678 | PFB | $15,420.50 |
 | Sarah Johnson | 062-000 | 87654321 | CBA | $8,750.00 |
 | ACME Pty Ltd | 062-000 | 11112222 | CBA | $250,000.00 |
 | Mike Wilson | 083-000 | 22334455 | NAB | $32,100.75 |
@@ -80,7 +81,7 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 | Type | Value | Display Name | Linked Account |
 |------|-------|-------------|----------------|
-| PHONE | +61412345678 | John S | John Smith (CBA) |
+| PHONE | +61412345678 | John S | John Smith (PFB) |
 | PHONE | +61498765432 | Mike W | Mike Wilson (NAB) |
 | PHONE | +61423456789 | Emma D | Emma Davis (ANZ) |
 | EMAIL | sarah.j@email.com | Sarah Johnson | Sarah Johnson (CBA) |
@@ -93,7 +94,7 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 | Description | Status | Creditor | Debtor | Max Amount | Frequency |
 |------------|--------|----------|--------|------------|-----------|
-| Monthly electricity bill | ACTIVE | Green Energy Solutions (ANZ) | John Smith (CBA) | $500.00 | MONTHLY |
+| Monthly electricity bill | ACTIVE | Green Energy Solutions (ANZ) | John Smith (PFB) | $500.00 | MONTHLY |
 | Gym membership subscription | PENDING | TechCorp Australia (NAB) | Emma Davis (ANZ) | $120.00 | MONTHLY |
 
 ---
@@ -159,7 +160,7 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
   "payIdValue": "+61412345678",
   "creditorBsb": null,
   "creditorAccountNumber": null,
-  "debtorBsb": "062-000",
+  "debtorBsb": "638-060",
   "debtorAccountNumber": "12345678",
   "remittanceInfo": "Invoice #1234"
 }
@@ -239,10 +240,15 @@ Settlement reversal follows the inverse process for returned payments.
 |------|-------|-------------|
 | Dashboard | `/dashboard` | Stat cards (total/settled/rejected), bank ESA balances, recent payments table. Auto-refreshes every 5s. |
 | PayID Lookup | `/payid` | Dropdown (PHONE/EMAIL/ABN) + input. Resolves to account details. Quick-select buttons for seeded PayIDs. |
-| Send Payment | `/send` | Toggle PayID vs BSB/account mode. PayID auto-resolves recipient on blur. SSE subscription shows real-time status progression bar. Links to generated ISO 20022 messages. |
+| Send Payment | `/send` | Toggle PayID vs BSB/account mode. PayID auto-resolves recipient on blur. SSE subscription shows real-time status progression bar. Clickable ISO 20022 message rows expand to show XML content with syntax highlighting. |
 | PayTo Mandates | `/payto` | Mandate table with status badges. Create form. Approve/reject buttons on PENDING mandates. Execute payment button on ACTIVE mandates with amount validation. |
 | Settlement Monitor | `/settlement` | 4 bank ESA balance cards. Settlement transaction log table. Auto-refreshes every 3s. |
 | Message Inspector | `/messages` | Message list with type badges (pacs.008/002/004). Click row to expand and view XML with syntax highlighting. |
+
+### UX Features
+
+- **Form state persistence**: PayID Lookup, Send Payment, and PayTo Mandates pages persist their form state (text inputs, dropdown selections, results) when navigating between pages. State is lifted into `App.jsx` and passed as props so it survives component unmount/remount cycles.
+- **Placeholder styling**: Form input placeholder text uses `rgb(204, 204, 204)` to clearly distinguish it from user-entered values.
 
 ---
 

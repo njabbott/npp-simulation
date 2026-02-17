@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import PayIdLookup from './pages/PayIdLookup';
@@ -17,12 +17,16 @@ const navItems = [
 ];
 
 export default function App() {
+  const payIdStateRef = useRef({});
+  const sendPaymentStateRef = useRef({});
+  const payToStateRef = useRef({});
+
   return (
     <BrowserRouter>
       <div className="app-layout">
         <aside className="sidebar">
           <div className="sidebar-header">
-            <h2>NPP Demo</h2>
+            <h2>NPP Simulation</h2>
             <span className="sidebar-subtitle">New Payments Platform</span>
           </div>
           <nav className="sidebar-nav">
@@ -47,9 +51,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/payid" element={<PayIdLookup />} />
-            <Route path="/send" element={<SendPayment />} />
-            <Route path="/payto" element={<PayToMandates />} />
+            <Route path="/payid" element={<PayIdLookup stateRef={payIdStateRef} />} />
+            <Route path="/send" element={<SendPayment stateRef={sendPaymentStateRef} />} />
+            <Route path="/payto" element={<PayToMandates stateRef={payToStateRef} />} />
             <Route path="/settlement" element={<SettlementMonitor />} />
             <Route path="/messages" element={<MessageInspector />} />
           </Routes>

@@ -3,13 +3,13 @@ import { getMandates, createMandate, approveMandate, rejectMandate, executeManda
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-export default function PayToMandates() {
+export default function PayToMandates({ stateRef }) {
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(stateRef.current.showCreate ?? false);
   const [showExecute, setShowExecute] = useState(null);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(stateRef.current.form ?? {
     creditorBsb: '083-000',
     creditorAccountNumber: '55667788',
     debtorBsb: '062-000',
@@ -18,7 +18,11 @@ export default function PayToMandates() {
     maximumAmount: '',
     frequency: 'MONTHLY',
   });
-  const [executeForm, setExecuteForm] = useState({ amount: '', remittanceInfo: '' });
+  const [executeForm, setExecuteForm] = useState(stateRef.current.executeForm ?? { amount: '', remittanceInfo: '' });
+
+  useEffect(() => {
+    stateRef.current = { form, showCreate, executeForm };
+  }, [form, showCreate, executeForm, stateRef]);
 
   const fetchMandates = () => {
     getMandates()

@@ -1,27 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initiatePayment, resolvePayId, subscribeToPayment, getMessages } from '../api';
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
+import xml from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
+import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import PaymentProgressBar from '../components/PaymentProgressBar';
 
-export default function SendPayment() {
-  const [mode, setMode] = useState('payid');
-  const [form, setForm] = useState({
+SyntaxHighlighter.registerLanguage('xml', xml);
+
+export default function SendPayment({ stateRef }) {
+  const [mode, setMode] = useState(stateRef.current.mode ?? 'payid');
+  const [form, setForm] = useState(stateRef.current.form ?? {
     amount: '',
     payIdType: 'PHONE',
     payIdValue: '',
     creditorBsb: '',
     creditorAccountNumber: '',
-    debtorBsb: '062-000',
+    debtorBsb: '638-060',
     debtorAccountNumber: '12345678',
     remittanceInfo: '',
   });
-  const [resolvedPayee, setResolvedPayee] = useState(null);
-  const [paymentResult, setPaymentResult] = useState(null);
-  const [currentStatus, setCurrentStatus] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [relatedMessages, setRelatedMessages] = useState([]);
+  const [resolvedPayee, setResolvedPayee] = useState(stateRef.current.resolvedPayee ?? null);
+  const [paymentResult, setPaymentResult] = useState(stateRef.current.paymentResult ?? null);
+  const [currentStatus, setCurrentStatus] = useState(stateRef.current.currentStatus ?? null);
+  const [statusMessage, setStatusMessage] = useState(stateRef.current.statusMessage ?? '');
+  const [relatedMessages, setRelatedMessages] = useState(stateRef.current.relatedMessages ?? []);
+  const [expandedId, setExpandedId] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef(null);
+
+  useEffect(() => {
+    stateRef.current = { mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages };
+  }, [mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages, stateRef]);
 
   useEffect(() => {
     return () => {
@@ -102,6 +112,7 @@ export default function SendPayment() {
     setRelatedMessages([]);
     setError(null);
     setResolvedPayee(null);
+    setExpandedId(null);
     if (eventSourceRef.current) eventSourceRef.current.close();
   };
 
@@ -133,6 +144,7 @@ export default function SendPayment() {
                   <option value="083-000">083-000 (NAB)</option>
                   <option value="012-000">012-000 (ANZ)</option>
                   <option value="032-000">032-000 (Westpac)</option>
+                  <option value="638-060">638-060 (People First Bank)</option>
                 </select>
               </div>
               <div className="form-group">
@@ -141,7 +153,7 @@ export default function SendPayment() {
                   value={form.debtorAccountNumber}
                   onChange={(e) => handleChange('debtorAccountNumber', e.target.value)}
                 >
-                  <option value="12345678">12345678 - John Smith (CBA)</option>
+                  <option value="12345678">12345678 - John Smith (PFB)</option>
                   <option value="87654321">87654321 - Sarah Johnson (CBA)</option>
                   <option value="11112222">11112222 - ACME Pty Ltd (CBA)</option>
                   <option value="22334455">22334455 - Mike Wilson (NAB)</option>
@@ -302,13 +314,34 @@ export default function SendPayment() {
                 </thead>
                 <tbody>
                   {relatedMessages.map((m) => (
-                    <tr key={m.id}>
-                      <td><span className={`badge badge-${m.messageType.toLowerCase()}`}>{m.messageType.replace('_', '.')}</span></td>
-                      <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{m.messageId}</td>
-                      <td>{m.direction}</td>
-                      <td>{m.senderBic}</td>
-                      <td>{m.receiverBic}</td>
-                    </tr>
+                    <React.Fragment key={m.id}>
+                      <tr
+                        className="clickable-row"
+                        onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                      >
+                        <td><span className={`badge badge-${m.messageType.toLowerCase()}`}>{m.messageType.replace('_', '.')}</span></td>
+                        <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{m.messageId}</td>
+                        <td>{m.direction}</td>
+                        <td>{m.senderBic}</td>
+                        <td>{m.receiverBic}</td>
+                      </tr>
+                      {expandedId === m.id && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: 0 }}>
+                            <div className="xml-viewer">
+                              <SyntaxHighlighter
+                                language="xml"
+                                style={vs2015}
+                                customStyle={{ margin: 0, padding: 16 }}
+                                wrapLongLines
+                              >
+                                {m.xmlContent}
+                              </SyntaxHighlighter>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

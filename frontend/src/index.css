@@ -263,6 +263,10 @@ tr:hover td {
   transition: border-color 0.15s;
 }
 
+.form-group input::placeholder {
+  color: rgb(204, 204, 204);
+}
+
 .form-group input:focus,
 .form-group select:focus {
   border-color: var(--primary);

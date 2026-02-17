@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { resolvePayId } from '../api';
 
 const QUICK_PAYIDS = [
@@ -12,12 +12,16 @@ const QUICK_PAYIDS = [
   { type: 'PHONE', value: '+61423456789', label: 'Emma (+61423...)' },
 ];
 
-export default function PayIdLookup() {
-  const [type, setType] = useState('PHONE');
-  const [value, setValue] = useState('');
-  const [result, setResult] = useState(null);
+export default function PayIdLookup({ stateRef }) {
+  const [type, setType] = useState(stateRef.current.type ?? 'PHONE');
+  const [value, setValue] = useState(stateRef.current.value ?? '');
+  const [result, setResult] = useState(stateRef.current.result ?? null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    stateRef.current = { type, value, result };
+  }, [type, value, result, stateRef]);
 
   const handleResolve = async (t, v) => {
     const resolveType = t || type;
