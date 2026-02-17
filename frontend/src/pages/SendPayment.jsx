@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { initiatePayment, resolvePayId, subscribeToPayment, getMessages } from '../api';
+import { initiatePayment, resolvePayId, subscribeToPayment, getMessages, getAllPayIds } from '../api';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import xml from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
 import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -27,17 +27,28 @@ export default function SendPayment({ stateRef }) {
   const [expandedId, setExpandedId] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [registeredPayIds, setRegisteredPayIds] = useState(stateRef.current.registeredPayIds ?? []);
+  const [selectedPayId, setSelectedPayId] = useState(stateRef.current.selectedPayId ?? '');
+  const [showNewPayId, setShowNewPayId] = useState(stateRef.current.showNewPayId ?? false);
+  const [newPayIdType, setNewPayIdType] = useState(stateRef.current.newPayIdType ?? 'PHONE');
+  const [newPayIdValue, setNewPayIdValue] = useState(stateRef.current.newPayIdValue ?? '');
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
-    stateRef.current = { mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages };
-  }, [mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages, stateRef]);
+    stateRef.current = { mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages, registeredPayIds, selectedPayId, showNewPayId, newPayIdType, newPayIdValue };
+  }, [mode, form, resolvedPayee, paymentResult, currentStatus, statusMessage, relatedMessages, registeredPayIds, selectedPayId, showNewPayId, newPayIdType, newPayIdValue, stateRef]);
 
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) eventSourceRef.current.close();
     };
   }, []);
+
+  useEffect(() => {
+    if (mode === 'payid') {
+      getAllPayIds().then(setRegisteredPayIds).catch(() => {});
+    }
+  }, [mode]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -170,28 +181,111 @@ export default function SendPayment({ stateRef }) {
             {mode === 'payid' ? (
               <>
                 <div className="form-row">
-                  <div className="form-group">
-                    <label>PayID Type</label>
-                    <select value={form.payIdType} onChange={(e) => handleChange('payIdType', e.target.value)}>
-                      <option value="PHONE">Phone</option>
-                      <option value="EMAIL">Email</option>
-                      <option value="ABN">ABN</option>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Pre-Registered PayIDs</label>
+                    <select
+                      value={selectedPayId}
+                      onChange={(e) => {
+                        const idx = e.target.value;
+                        setSelectedPayId(idx);
+                        setShowNewPayId(false);
+                        setNewPayIdValue('');
+                        if (idx !== '') {
+                          const payId = registeredPayIds[idx];
+                          handleChange('payIdType', payId.payIdType);
+                          handleChange('payIdValue', payId.value);
+                          resolvePayId(payId.payIdType, payId.value)
+                            .then((res) => { setResolvedPayee(res); setError(null); })
+                            .catch((err) => { setResolvedPayee(null); setError(err.message); });
+                        } else {
+                          handleChange('payIdType', 'PHONE');
+                          handleChange('payIdValue', '');
+                          setResolvedPayee(null);
+                        }
+                      }}
+                    >
+                      <option value="">Please select from the following...</option>
+                      {registeredPayIds.map((p, i) => (
+                        <option key={i} value={i}>{p.displayName} - {p.value}</option>
+                      ))}
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label>PayID Value</label>
-                    <input
-                      type="text"
-                      value={form.payIdValue}
-                      onChange={(e) => handleChange('payIdValue', e.target.value)}
-                      onBlur={handlePayIdResolve}
-                      placeholder="+61412345678"
-                    />
-                  </div>
                 </div>
-                {resolvedPayee && (
-                  <div className="info-box">
-                    Recipient: <strong>{resolvedPayee.displayName}</strong> at {resolvedPayee.bankName} ({resolvedPayee.bsb} / {resolvedPayee.accountNumber})
+
+                {!showNewPayId && (
+                  <div style={{ margin: '8px 0' }}>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowNewPayId(true);
+                        setSelectedPayId('');
+                        setResolvedPayee(null);
+                        handleChange('payIdType', 'PHONE');
+                        handleChange('payIdValue', '');
+                        setNewPayIdType('PHONE');
+                        setNewPayIdValue('');
+                      }}
+                      style={{ fontSize: 14 }}
+                    >
+                      Add a new PayID
+                    </a>
+                  </div>
+                )}
+
+                {selectedPayId !== '' && resolvedPayee && (
+                  <div className="info-box" style={{ marginTop: 12 }}>
+                    <div style={{ marginBottom: 4 }}><strong>Existing Pay ID</strong></div>
+                    <div style={{ fontSize: 14 }}>
+                      <div>PayID Name: <strong>{resolvedPayee.displayName}</strong></div>
+                      <div>PayID: <strong>{resolvedPayee.value}</strong></div>
+                      <div>PayID Type: <strong>{resolvedPayee.payIdType}</strong></div>
+                    </div>
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--warning-bg, #fef3cd)', borderRadius: 6, fontSize: 13, color: 'var(--warning, #856404)' }}>
+                      &#9888; Check the name and PayID entered. Entering incorrect details may result in the wrong account being credited and the funds may not be able to be recovered.
+                    </div>
+                  </div>
+                )}
+
+                {showNewPayId && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>PayID Type</label>
+                        <select
+                          value={newPayIdType}
+                          onChange={(e) => {
+                            setNewPayIdType(e.target.value);
+                            handleChange('payIdType', e.target.value);
+                            setNewPayIdValue('');
+                            handleChange('payIdValue', '');
+                            setResolvedPayee(null);
+                          }}
+                        >
+                          <option value="PHONE">Phone</option>
+                          <option value="EMAIL">Email</option>
+                          <option value="ABN">ABN</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>{newPayIdType === 'PHONE' ? 'Phone Number' : newPayIdType === 'EMAIL' ? 'Email Address' : 'ABN'}</label>
+                        <input
+                          type="text"
+                          value={newPayIdValue}
+                          onChange={(e) => {
+                            setNewPayIdValue(e.target.value);
+                            handleChange('payIdValue', e.target.value);
+                          }}
+                          onBlur={handlePayIdResolve}
+                          placeholder={newPayIdType === 'PHONE' ? '+61412345678' : newPayIdType === 'EMAIL' ? 'name@example.com' : '51824753556'}
+                        />
+                      </div>
+                    </div>
+                    {resolvedPayee && (
+                      <div className="info-box">
+                        Recipient: <strong>{resolvedPayee.displayName}</strong> at {resolvedPayee.bankName} ({resolvedPayee.bsb} / {resolvedPayee.accountNumber})
+                      </div>
+                    )}
                   </div>
                 )}
               </>

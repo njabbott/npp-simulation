@@ -25,7 +25,7 @@ class PaymentServiceTest {
                 new BigDecimal("50.00"),
                 "PHONE", "+61498765432",
                 null, null,
-                "062-000", "12345678",
+                "638-060", "12345678",
                 "Test payment via PayID"
         );
         PaymentResponse response = paymentService.initiatePayment(request);

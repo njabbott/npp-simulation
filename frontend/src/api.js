@@ -13,6 +13,7 @@ async function fetchJson(url, options) {
 export const getDashboard = () => fetchJson(`${BASE}/dashboard`);
 
 // PayID
+export const getAllPayIds = () => fetchJson(`${BASE}/payid`);
 export const resolvePayId = (type, value) =>
   fetchJson(`${BASE}/payid/resolve?type=${encodeURIComponent(type)}&value=${encodeURIComponent(value)}`);
 

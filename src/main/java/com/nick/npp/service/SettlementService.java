@@ -1,6 +1,7 @@
 package com.nick.npp.service;
 
 import com.nick.npp.dto.SettlementBalanceResponse;
+import com.nick.npp.dto.SettlementTransactionResponse;
 import com.nick.npp.exception.InsufficientEsaBalanceException;
 import com.nick.npp.model.NppParticipant;
 import com.nick.npp.model.NppPayment;
@@ -107,7 +108,21 @@ public class SettlementService {
     }
 
     @Transactional(readOnly = true)
-    public List<SettlementRecord> getTransactionLog() {
-        return settlementRecordRepository.findAllByOrderBySettledAtDesc();
+    public List<SettlementTransactionResponse> getTransactionLog() {
+        return settlementRecordRepository.findAllByOrderBySettledAtDesc().stream()
+                .map(r -> new SettlementTransactionResponse(
+                        r.getId(),
+                        r.getAmount(),
+                        r.getDebitBalanceAfter(),
+                        r.getCreditBalanceAfter(),
+                        r.getSettledAt(),
+                        toSummary(r.getDebitParticipant()),
+                        toSummary(r.getCreditParticipant())
+                ))
+                .toList();
+    }
+
+    private SettlementTransactionResponse.ParticipantSummary toSummary(NppParticipant p) {
+        return new SettlementTransactionResponse.ParticipantSummary(p.getName(), p.getShortName(), p.getBic());
     }
 }

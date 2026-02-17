@@ -20,9 +20,9 @@ class PayIdServiceTest {
         PayIdResolutionResponse result = payIdService.resolve(PayIdType.PHONE, "+61412345678");
         assertNotNull(result);
         assertEquals("John S", result.displayName());
-        assertEquals("062-000", result.bsb());
+        assertEquals("638-060", result.bsb());
         assertEquals("12345678", result.accountNumber());
-        assertEquals("CTBAAU2S", result.bankBic());
+        assertEquals("HBSLAU4T", result.bankBic());
     }
 
     @Test

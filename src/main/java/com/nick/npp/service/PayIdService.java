@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class PayIdService {
 
@@ -41,5 +43,23 @@ public class PayIdService {
                 account.getParticipant().getName(),
                 account.getParticipant().getBic()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<PayIdResolutionResponse> getAllPayIds() {
+        return payIdRepository.findAllByActiveTrue().stream()
+                .map(payId -> {
+                    BankAccount account = payId.getBankAccount();
+                    return new PayIdResolutionResponse(
+                            payId.getType(),
+                            payId.getValue(),
+                            payId.getDisplayName(),
+                            account.getBsb(),
+                            account.getAccountNumber(),
+                            account.getParticipant().getName(),
+                            account.getParticipant().getBic()
+                    );
+                })
+                .toList();
     }
 }

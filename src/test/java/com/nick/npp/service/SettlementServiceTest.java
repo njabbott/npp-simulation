@@ -35,12 +35,12 @@ class SettlementServiceTest {
 
     @Test
     void settlePaymentUpdatesEsaBalances() {
-        NppParticipant cba = participantRepository.findByBic("CTBAAU2S").orElseThrow();
+        NppParticipant pfb = participantRepository.findByBic("HBSLAU4T").orElseThrow();
         NppParticipant nab = participantRepository.findByBic("NATAAU33").orElseThrow();
-        BigDecimal cbaBalanceBefore = cba.getEsaBalance();
+        BigDecimal pfbBalanceBefore = pfb.getEsaBalance();
         BigDecimal nabBalanceBefore = nab.getEsaBalance();
 
-        BankAccount debtor = bankAccountRepository.findByBsbAndAccountNumber("062-000", "12345678").orElseThrow();
+        BankAccount debtor = bankAccountRepository.findByBsbAndAccountNumber("638-060", "12345678").orElseThrow();
         BankAccount creditor = bankAccountRepository.findByBsbAndAccountNumber("083-000", "22334455").orElseThrow();
 
         NppPayment payment = new NppPayment();
@@ -51,7 +51,7 @@ class SettlementServiceTest {
         payment.setStatus(PaymentStatus.CLEARING);
         payment.setDebtorAccount(debtor);
         payment.setCreditorAccount(creditor);
-        payment.setDebtorAgent(cba);
+        payment.setDebtorAgent(pfb);
         payment.setCreditorAgent(nab);
         payment = paymentRepository.save(payment);
 
@@ -59,16 +59,16 @@ class SettlementServiceTest {
 
         assertNotNull(record);
         assertEquals(new BigDecimal("1000.00"), record.getAmount());
-        assertEquals(cbaBalanceBefore.subtract(new BigDecimal("1000.00")), record.getDebitBalanceAfter());
+        assertEquals(pfbBalanceBefore.subtract(new BigDecimal("1000.00")), record.getDebitBalanceAfter());
         assertEquals(nabBalanceBefore.add(new BigDecimal("1000.00")), record.getCreditBalanceAfter());
     }
 
     @Test
     void settleWithInsufficientBalanceThrows() {
-        NppParticipant cba = participantRepository.findByBic("CTBAAU2S").orElseThrow();
+        NppParticipant pfb = participantRepository.findByBic("HBSLAU4T").orElseThrow();
         NppParticipant nab = participantRepository.findByBic("NATAAU33").orElseThrow();
 
-        BankAccount debtor = bankAccountRepository.findByBsbAndAccountNumber("062-000", "12345678").orElseThrow();
+        BankAccount debtor = bankAccountRepository.findByBsbAndAccountNumber("638-060", "12345678").orElseThrow();
         BankAccount creditor = bankAccountRepository.findByBsbAndAccountNumber("083-000", "22334455").orElseThrow();
 
         NppPayment payment = new NppPayment();
@@ -79,7 +79,7 @@ class SettlementServiceTest {
         payment.setStatus(PaymentStatus.CLEARING);
         payment.setDebtorAccount(debtor);
         payment.setCreditorAccount(creditor);
-        payment.setDebtorAgent(cba);
+        payment.setDebtorAgent(pfb);
         payment.setCreditorAgent(nab);
         paymentRepository.save(payment);
 
@@ -88,8 +88,8 @@ class SettlementServiceTest {
     }
 
     @Test
-    void getAllBalancesReturnsFourBanks() {
+    void getAllBalancesReturnsFiveBanks() {
         List<SettlementBalanceResponse> balances = settlementService.getAllBalances();
-        assertEquals(4, balances.size());
+        assertEquals(5, balances.size());
     }
 }

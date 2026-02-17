@@ -49,9 +49,9 @@ export default function Dashboard() {
       </div>
 
       <div className="balance-grid">
-        {data.balances.map((b) => (
+        {[...data.balances].sort((a, b) => a.bic === 'HBSLAU4T' ? -1 : b.bic === 'HBSLAU4T' ? 1 : 0).map((b) => (
           <div key={b.bic} className="balance-card">
-            <div className="bank-name">{b.shortName}</div>
+            <div className="bank-name">{b.participantName}</div>
             <div className="bank-bic">{b.bic}</div>
             <div className="esa-label">ESA Balance</div>
             <div className="esa-balance">

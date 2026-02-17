@@ -105,6 +105,7 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/payid` | List all registered PayIDs |
 | GET | `/api/payid/resolve?type={}&value={}` | Resolve a PayID to account details |
 
 ### Payments
@@ -240,7 +241,7 @@ Settlement reversal follows the inverse process for returned payments.
 |------|-------|-------------|
 | Dashboard | `/dashboard` | Stat cards (total/settled/rejected), bank ESA balances, recent payments table. Auto-refreshes every 5s. |
 | PayID Lookup | `/payid` | Dropdown (PHONE/EMAIL/ABN) + input. Resolves to account details. Quick-select buttons for seeded PayIDs. |
-| Send Payment | `/send` | Toggle PayID vs BSB/account mode. PayID auto-resolves recipient on blur. SSE subscription shows real-time status progression bar. Clickable ISO 20022 message rows expand to show XML content with syntax highlighting. |
+| Send Payment | `/send` | Toggle PayID vs BSB/account mode. Pre-registered PayID dropdown with auto-resolve on selection. "Add a new PayID" link toggles manual entry (mutually exclusive with dropdown). SSE subscription shows real-time status progression bar. Clickable ISO 20022 message rows expand to show XML content with syntax highlighting. |
 | PayTo Mandates | `/payto` | Mandate table with status badges. Create form. Approve/reject buttons on PENDING mandates. Execute payment button on ACTIVE mandates with amount validation. |
 | Settlement Monitor | `/settlement` | 4 bank ESA balance cards. Settlement transaction log table. Auto-refreshes every 3s. |
 | Message Inspector | `/messages` | Message list with type badges (pacs.008/002/004). Click row to expand and view XML with syntax highlighting. |
