@@ -245,11 +245,13 @@ Settlement reversal follows the inverse process for returned payments.
 | PayTo Mandates | `/payto` | Mandate table with status badges. Create form. Approve/reject buttons on PENDING mandates. Execute payment button on ACTIVE mandates with amount validation. |
 | Settlement Monitor | `/settlement` | 4 bank ESA balance cards. Settlement transaction log table. Auto-refreshes every 3s. |
 | Message Inspector | `/messages` | Message list with type badges (pacs.008/002/004). Click row to expand and view XML with syntax highlighting. |
+| About | `/about` | Research project overview, creator credit (Nick Abbott), architecture/tech stack breakdown, link to Swagger API docs, link to GitHub source. Linked from the bottom-left sidebar in place of the former "Australia NPP Simulation" label. |
 
 ### UX Features
 
 - **Form state persistence**: PayID Lookup, Send Payment, and PayTo Mandates pages persist their form state (text inputs, dropdown selections, results) when navigating between pages. State is lifted into `App.jsx` and passed as props so it survives component unmount/remount cycles.
 - **Placeholder styling**: Form input placeholder text uses `rgb(204, 204, 204)` to clearly distinguish it from user-entered values.
+- **About link in sidebar footer**: The sidebar footer contains a NavLink to `/about` (replacing the former static "Australia NPP Simulation" label), styled consistently with the main navigation items.
 
 ---
 
@@ -318,7 +320,8 @@ Payment Processing/
 │           ├── SendPayment.jsx
 │           ├── PayToMandates.jsx
 │           ├── SettlementMonitor.jsx
-│           └── MessageInspector.jsx
+│           ├── MessageInspector.jsx
+│           └── About.jsx
 └── src/
     ├── main/
     │   ├── java/com/nick/npp/

@@ -6,6 +6,7 @@ import SendPayment from './pages/SendPayment';
 import PayToMandates from './pages/PayToMandates';
 import SettlementMonitor from './pages/SettlementMonitor';
 import MessageInspector from './pages/MessageInspector';
+import About from './pages/About';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '\u2302' },
@@ -44,7 +45,15 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-footer">
-            <small>Australia NPP Simulation</small>
+            <NavLink
+              to="/about"
+              className={({ isActive }) =>
+                'sidebar-about-link' + (isActive ? ' sidebar-about-link-active' : '')
+              }
+            >
+              <span className="nav-icon">ℹ</span>
+              About
+            </NavLink>
           </div>
         </aside>
         <main className="main-content">
@@ -56,6 +65,7 @@ export default function App() {
             <Route path="/payto" element={<PayToMandates stateRef={payToStateRef} />} />
             <Route path="/settlement" element={<SettlementMonitor />} />
             <Route path="/messages" element={<MessageInspector />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </main>
       </div>
