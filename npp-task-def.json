@@ -1,0 +1,36 @@
+{
+  "family": "npp-simulation",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::400442376703:role/ecsTaskExecutionRole",
+  "containerDefinitions": [{
+    "name": "npp-simulation",
+    "image": "400442376703.dkr.ecr.ap-southeast-2.amazonaws.com/npp-simulation:latest",
+    "portMappings": [{
+      "containerPort": 80,
+      "protocol": "tcp"
+    }],
+    "environment": [
+      {"name": "SERVER_PORT", "value": "80"},
+      {"name": "SERVER_SERVLET_CONTEXT_PATH", "value": "/npp-simulation"},
+      {"name": "JAVA_TOOL_OPTIONS", "value": "-XX:MaxRAMPercentage=75.0"}
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/npp-simulation",
+        "awslogs-region": "ap-southeast-2",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "healthCheck": {
+      "command": ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/npp-simulation/ || exit 1"],
+      "interval": 30,
+      "timeout": 10,
+      "retries": 3,
+      "startPeriod": 90
+    }
+  }]
+}

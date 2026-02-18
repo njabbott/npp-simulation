@@ -38,6 +38,12 @@ build/
 ### Mac OS ###
 .DS_Store
 
+### Secrets — never commit ###
+.env
+.env.local
+*.env
+secrets.*
+
 ### Frontend ###
 frontend/node_modules/
 frontend/dist/

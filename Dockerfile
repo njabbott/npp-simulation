@@ -18,9 +18,9 @@ FROM --platform=linux/amd64 eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/npp-demo-1.0-SNAPSHOT.jar app.jar
 
-EXPOSE 8080
+EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:8080/npp-simulation/ || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:80/npp-simulation/ || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
