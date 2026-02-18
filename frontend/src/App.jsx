@@ -23,7 +23,7 @@ export default function App() {
   const payToStateRef = useRef({});
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.VITE_BASENAME || '/'}>
       <div className="app-layout">
         <aside className="sidebar">
           <div className="sidebar-header">

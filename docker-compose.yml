@@ -1,0 +1,13 @@
+services:
+  npp-simulation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: npp-demo:local
+    container_name: npp-simulation
+    ports:
+      - "8080:8080"
+    environment:
+      # Spring Boot's relaxed binding maps this to server.servlet.context-path
+      SERVER_SERVLET_CONTEXT_PATH: /npp-simulation
+    restart: unless-stopped

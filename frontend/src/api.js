@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = `${import.meta.env.VITE_BASENAME || ''}/api`;
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
