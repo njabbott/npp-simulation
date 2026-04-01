@@ -2,20 +2,20 @@
   "family": "npp-simulation",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
+  "cpu": "1024",
+  "memory": "2048",
   "executionRoleArn": "arn:aws:iam::400442376703:role/ecsTaskExecutionRole",
   "containerDefinitions": [{
     "name": "npp-simulation",
     "image": "400442376703.dkr.ecr.ap-southeast-2.amazonaws.com/npp-simulation:latest",
     "portMappings": [{
-      "containerPort": 80,
+      "containerPort": 8080,
       "protocol": "tcp"
     }],
     "environment": [
-      {"name": "SERVER_PORT", "value": "80"},
-      {"name": "SERVER_SERVLET_CONTEXT_PATH", "value": "/npp-simulation"},
-      {"name": "JAVA_TOOL_OPTIONS", "value": "-XX:MaxRAMPercentage=75.0"}
+      {"name": "JAVA_TOOL_OPTIONS", "value": "-XX:MaxRAMPercentage=75.0"},
+      {"name": "RBA_SIM_BASE_URL", "value": "http://localhost:8080/rba-sim"},
+      {"name": "NPP_CALLBACK_BASE_URL", "value": "http://localhost:8080/npp-simulation"}
     ],
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -26,11 +26,11 @@
       }
     },
     "healthCheck": {
-      "command": ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/npp-simulation/ || exit 1"],
+      "command": ["CMD-SHELL", "curl -f http://localhost:8080/npp-simulation/ || exit 1"],
       "interval": 30,
       "timeout": 10,
       "retries": 3,
-      "startPeriod": 90
+      "startPeriod": 120
     }
   }]
 }

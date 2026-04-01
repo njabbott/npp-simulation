@@ -1,26 +1,33 @@
-# Stage 1: Build
+# Stage 1: Build both modules
 FROM --platform=linux/amd64 maven:3.9-eclipse-temurin-21-alpine AS build
 
 WORKDIR /app
 
+# Copy parent POM and both module POMs first (for layer caching)
 COPY pom.xml .
-COPY src ./src
-COPY frontend ./frontend
+COPY npp-demo/pom.xml npp-demo/
+COPY rba-sim/pom.xml rba-sim/
 
-# Vite reads this at build time to set asset base paths (e.g. /npp-simulation/assets/...)
-ENV VITE_BASENAME=/npp-simulation
+# Copy sources and frontends
+COPY npp-demo/src npp-demo/src
+COPY npp-demo/frontend npp-demo/frontend
+COPY rba-sim/src rba-sim/src
+COPY rba-sim/frontend rba-sim/frontend
 
+# VITE_BASENAME is set per module via frontend-maven-plugin environmentVariables in each pom.xml
 RUN mvn package -DskipTests
 
-# Stage 2: Runtime
-FROM --platform=linux/amd64 eclipse-temurin:21-jre-alpine
+# Stage 2: Tomcat runtime — both WARs in a single container
+FROM --platform=linux/amd64 tomcat:10.1-jre21-temurin-jammy
 
-WORKDIR /app
-COPY --from=build /app/target/npp-demo-1.0-SNAPSHOT.jar app.jar
+# Remove default ROOT app
+RUN rm -rf /usr/local/tomcat/webapps/*
 
-EXPOSE 80
+# Deploy both WARs
+COPY --from=build /app/npp-demo/target/npp-demo-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/npp-simulation.war
+COPY --from=build /app/rba-sim/target/rba-sim-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/rba-sim.war
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:80/npp-simulation/ || exit 1
+EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8080/npp-simulation/ || exit 1

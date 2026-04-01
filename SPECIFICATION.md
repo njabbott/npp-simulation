@@ -16,13 +16,38 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 ## Tech Stack
 
-| Component | Choice |
-|-----------|--------|
-| Backend | Spring Boot 3.4.x, Java 21 LTS |
-| Frontend | React 18 + Vite, embedded via `frontend-maven-plugin`, plain CSS |
-| Database | H2 in-memory (`jdbc:h2:mem:nppdb`) |
+### Backend
+| Layer | Technology |
+|-------|-----------|
+| Language | Java 21 LTS |
+| Framework | Spring Boot 3.4.3 |
+| Web | Spring MVC |
+| Persistence | Spring Data JPA (Hibernate) |
+| Database | H2 in-memory (`jdbc:h2:mem:nppdb`), `create-drop` schema |
+| Validation | Jakarta Bean Validation |
 | ISO 20022 | Prowide ISO 20022 (`pw-iso20022:SRU2024-10.2.6`) |
-| Real-time updates | Server-Sent Events (SSE) via `SseEmitter` |
+| XML Binding | JAXB 2.3.1 + jaxb-impl 2.3.9 |
+| API Docs | springdoc-openapi 2.8.4 (Swagger UI at `/swagger-ui.html`) |
+| Real-time | Spring `SseEmitter` (Server-Sent Events, 60s timeout) |
+| Async | Spring `@Async` — `ThreadPoolTaskExecutor` (core 5, max 10, queue 25) |
+| Build | Maven 3 |
+
+### Frontend
+| Layer | Technology |
+|-------|-----------|
+| Language | JavaScript (JSX) |
+| Framework | React 18.3.1 |
+| Router | react-router-dom 6.26.2 |
+| Build | Vite 6.0.5 |
+| Syntax Highlighting | react-syntax-highlighter 15.6.1 (HLjs XML, vs2015 theme) |
+| Styles | Plain CSS (no UI library) |
+| Build integration | frontend-maven-plugin 1.15.1 (Node v20.11.1, npm 10.2.4) |
+
+### Infrastructure / Deployment
+- Docker (multi-stage: `maven:3.9-eclipse-temurin-21-alpine` → `eclipse-temurin:21-jre-alpine`, `linux/amd64`)
+- AWS ECS Fargate — 512 CPU / 1024 MB, port 80
+- AWS ALB — HTTPS termination, path rule `/npp-simulation*`
+- AWS ECR image repository, CloudWatch Logs (`/ecs/npp-simulation`), region `ap-southeast-2`
 
 ---
 
@@ -41,13 +66,15 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 | Entity | Key Fields | Relationships |
 |--------|-----------|---------------|
-| `NppParticipant` | name, shortName, bic (unique), bsb, esaBalance | - |
+| `NppParticipant` | name, shortName, bic (unique), bsb, esaBalance | — |
 | `BankAccount` | accountNumber, bsb, accountName, balance | `@ManyToOne NppParticipant` |
-| `PayId` | type, value, displayName, active | `@ManyToOne BankAccount` |
+| `PayId` | type, value, displayName, active, **featured** | `@ManyToOne BankAccount` |
 | `NppPayment` | paymentId (UUID), endToEndId, amount, currency, status, remittanceInfo, payIdUsed, rejectionReason | `@ManyToOne BankAccount` (debtor + creditor), `@ManyToOne NppParticipant` (debtorAgent + creditorAgent) |
 | `SettlementRecord` | amount, debitBalanceAfter, creditBalanceAfter, settledAt | `@ManyToOne NppPayment`, `@ManyToOne NppParticipant` (debit + credit) |
 | `PayToMandate` | mandateId (UUID), description, maximumAmount, frequency, status, validFrom, validTo | `@ManyToOne BankAccount` (creditor + debtor) |
 | `Iso20022Message` | messageType, messageId, xmlContent (@Lob), direction, senderBic, receiverBic | `@ManyToOne NppPayment` |
+
+**Note on `PayId.featured`:** When `true`, the PayID appears in the pre-registered dropdown on the Send Payment page. When `false`, it is only accessible via the PayID Lookup page or manual entry.
 
 ---
 
@@ -79,16 +106,16 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 ### PayIDs (8)
 
-| Type | Value | Display Name | Linked Account |
-|------|-------|-------------|----------------|
-| PHONE | +61412345678 | John S | John Smith (PFB) |
-| PHONE | +61498765432 | Mike W | Mike Wilson (NAB) |
-| PHONE | +61423456789 | Emma D | Emma Davis (ANZ) |
-| EMAIL | sarah.j@email.com | Sarah Johnson | Sarah Johnson (CBA) |
-| EMAIL | james.b@email.com | James Brown | James Brown (Westpac) |
-| ABN | 51824753556 | ACME Pty Ltd | ACME Pty Ltd (CBA) |
-| ABN | 12345678901 | TechCorp Australia | TechCorp Australia (NAB) |
-| ABN | 98765432100 | Green Energy Solutions | Green Energy Solutions (ANZ) |
+e| Type | Value | Display Name | Linked Account | Featured |
+|------|-------|-------------|----------------|---------|
+| PHONE | +61412345678 | John S | John Smith (PFB) | Yes |
+| PHONE | +61498765432 | Mike W | Mike Wilson (NAB) | Yes |
+| PHONE | +61423456789 | Emma D | Emma Davis (ANZ) | Yes |
+| EMAIL | sarah.j@email.com | Sarah Johnson | Sarah Johnson (CBA) | Yes |
+| EMAIL | james.b@email.com | James Brown | James Brown (Westpac) | Yes |
+| ABN | 51824753556 | ACME Pty Ltd | ACME Pty Ltd (CBA) | No |
+| ABN | 12345678901 | TechCorp Australia | TechCorp Australia (NAB) | No |
+| ABN | 98765432100 | Green Energy Solutions | Green Energy Solutions (ANZ) | No |
 
 ### PayTo Mandates (2)
 
@@ -152,7 +179,9 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 
 ---
 
-## Payment Request Schema
+## Request / Response Schemas
+
+### Payment Request
 
 ```json
 {
@@ -167,7 +196,75 @@ A full-stack demo application simulating Australia's **New Payments Platform (NP
 }
 ```
 
-Either `payIdType`/`payIdValue` or `creditorBsb`/`creditorAccountNumber` must be provided. Debtor fields are always required.
+Either `payIdType`/`payIdValue` or `creditorBsb`/`creditorAccountNumber` must be provided (not both, not neither). Debtor fields always required. `amount` must be >= 0.01. Debtor and creditor accounts must differ.
+
+### Payment Response
+
+```json
+{
+  "id": 1,
+  "paymentId": "uuid",
+  "endToEndId": "string",
+  "amount": 100.00,
+  "currency": "AUD",
+  "status": "CONFIRMED",
+  "remittanceInfo": "Invoice #1234",
+  "payIdUsed": "+61412345678",
+  "rejectionReason": null,
+  "debtorAccountName": "John Smith",
+  "debtorBsb": "638-060",
+  "debtorAccountNumber": "12345678",
+  "debtorBankName": "People First Bank",
+  "creditorAccountName": "Sarah Johnson",
+  "creditorBsb": "062-000",
+  "creditorAccountNumber": "87654321",
+  "creditorBankName": "Commonwealth Bank",
+  "createdAt": "2025-01-01T10:00:00",
+  "updatedAt": "2025-01-01T10:00:01"
+}
+```
+
+### SSE Event (event name: `status`)
+
+```json
+{ "status": "CLEARING", "message": "Payment is being cleared..." }
+```
+
+### Mandate Request
+
+```json
+{
+  "creditorBsb": "062-000",
+  "creditorAccountNumber": "87654321",
+  "debtorBsb": "638-060",
+  "debtorAccountNumber": "12345678",
+  "description": "Monthly electricity bill",
+  "maximumAmount": 500.00,
+  "frequency": "MONTHLY"
+}
+```
+
+### Mandate Execute Request
+
+```json
+{
+  "amount": 95.00,
+  "remittanceInfo": "March billing"
+}
+```
+
+### Error Response
+
+```json
+{
+  "timestamp": "2025-01-01T10:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Description of the problem"
+}
+```
+
+HTTP status codes: 400 (validation), 404 (not found), 409 (conflict / invalid state transition).
 
 ---
 
@@ -265,16 +362,34 @@ Settlement reversal follows the inverse process for returned payments.
 | `spring.jpa.hibernate.ddl-auto` | `create-drop` | Schema recreated on each restart |
 | `spring.h2.console.enabled` | `true` | H2 console at `/h2-console` |
 | `spring.h2.console.path` | `/h2-console` | H2 console path |
+w| `server.port` | `8080` | Dev server port |
+| `springdoc.swagger-ui.path` | `/swagger-ui.html` | Swagger UI path |
 | `npp.simulation.clearing-delay-ms` | `500` | Simulated clearing delay |
 | `npp.simulation.settlement-delay-ms` | `800` | Simulated settlement delay |
 | `npp.simulation.confirmation-delay-ms` | `200` | Simulated confirmation delay |
 
-### H2 Console Access
+### Docker / Production Environment Overrides
+
+| Variable | Value |
+|----------|-------|
+| `SERVER_PORT` | `80` |
+| `SERVER_SERVLET_CONTEXT_PATH` | `/npp-simulation` |
+| `VITE_BASENAME` | `/npp-simulation` (set at Docker build time for Vite asset paths) |
+
+### H2 Console Access (dev only)
 
 - **URL**: `http://localhost:8080/h2-console`
 - **JDBC URL**: `jdbc:h2:mem:nppdb`
 - **Username**: `sa`
 - **Password**: *(blank)*
+
+---
+
+## Security and CORS
+
+- **No authentication or authorisation.** All API endpoints are publicly accessible.
+- CORS: all origins allowed (`*`) on `/api/**` for GET, POST, PUT, DELETE, OPTIONS.
+- This is a simulation/demo application only.
 
 ---
 
